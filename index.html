@@ -710,6 +710,9 @@ input:not([type=file]):focus,select:focus,textarea:focus{border-color:var(--acce
 .trial-bar b{font-weight:800;letter-spacing:.1em}
 .trial-bar.full{background:var(--t4-bg);color:var(--t4-ink)}
 @media (min-width:1100px){.trial-bar{margin-bottom:6px}}
+
+/* jenis lembar */
+.sh{margin:14px 0 8px;font-size:14px;font-weight:800;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 </style>
 </head>
 <body>
@@ -756,7 +759,7 @@ input:not([type=file]):focus,select:focus,textarea:focus{border-color:var(--acce
         <button class="link" id="btnDemo" type="button">Coba dengan foto contoh</button>
       </div>
       <div class="card tips"><details class="plain"><summary>Tips agar terbaca akurat</summary>
-        <ul><li>Letakkan kertas di meja rata dengan cahaya terang, hindari bayangan tangan.</li><li>Foto dari atas dan pastikan kertas tidak terlipat.</li><li>Siswa menghitamkan satu bulatan penuh dengan pensil 2B atau pulpen hitam.</li><li>Soal yang ragu-ragu diberi tanda kuning. Periksa dan ketuk kotaknya bila perlu.</li></ul></details></div>
+        <ul><li>Letakkan kertas di meja rata dengan cahaya terang, hindari bayangan tangan.</li><li>Foto dari atas dan pastikan kertas tidak terlipat.</li><li>Lembar bulatan: hitamkan satu bulatan penuh. Lembar silang: silang satu kotak dengan jelas (tekan cukup tebal). Pakai pensil 2B atau pulpen hitam.</li><li>Lembar silang: untuk mengganti jawaban, hitamkan penuh kotak yang lama, lalu silang kotak yang benar.</li><li>Soal yang ragu-ragu diberi tanda kuning. Periksa dan ketuk kotaknya bila perlu.</li></ul></details></div>
       <div id="busy"></div>
       <div id="pending" class="stack"></div>
     </section>
@@ -794,7 +797,7 @@ const LS='koreksi-ljk-v2';
 const JENIS=['Sumatif Ganjil','Sumatif Genap','Sumatif Tengah Semester','Ulangan Harian','Kuis'];
 const JENIS_LAMA={'Asesmen Sumatif Semester Ganjil':'Sumatif Ganjil','Asesmen Sumatif Semester Genap':'Sumatif Genap','Asesmen Sumatif Tengah Semester':'Sumatif Tengah Semester','Kuis / Latihan':'Kuis'};
 let S={exams:[],cur:null};
-function newExam(o){return Object.assign({id:'x'+Date.now()+Math.random().toString(36).slice(2,6),jenis:JENIS[0],mapel:'',kelas:'',sekolah:'',n:NMAX,key:Array(NMAX).fill(''),results:[],created:Date.now()},o||{});}
+function newExam(o){return Object.assign({id:'x'+Date.now()+Math.random().toString(36).slice(2,6),jenis:JENIS[0],mapel:'',kelas:'',sekolah:'',sheet:'bulat',n:NMAX,key:Array(NMAX).fill(''),results:[],created:Date.now()},o||{});}
 function migrate(j){
   j.exams.forEach(e=>{
     if(e.name!==undefined&&e.jenis===undefined){e.jenis=e.name;delete e.name;}
@@ -802,6 +805,7 @@ function migrate(j){
     e.key=Array.isArray(e.key)?e.key:[];while(e.key.length<NMAX)e.key.push('');
     e.results=Array.isArray(e.results)?e.results:[];
     e.n=Math.max(1,Math.min(NMAX,parseInt(e.n)||NMAX));
+    e.sheet=e.sheet==='silang'?'silang':'bulat';
     e.created=e.created||(e.results.length?Math.min(...e.results.map(x=>x.ts||Date.now())):Date.now());
   });
   return j;
@@ -889,7 +893,7 @@ function components(bin,W,H,minArea,maxDim){
     const w=maxx-minx+1,h=maxy-miny+1;
     if(w>maxDim*.15||h>maxDim*.15)continue;
     const sq=w/h,fill=area/(w*h);
-    if(sq<.55||sq>1.8||fill<.5)continue;
+    if(sq<.55||sq>1.8||fill<.72)continue;
     out.push({x:sx/area,y:sy/area,area,w,h});
   }
   return out;
@@ -943,20 +947,27 @@ function bilin(g,W,H,x,y){
   const x0=x|0,y0=y|0,fx=x-x0,fy=y-y0,x1=Math.min(W-1,x0+1),y1=Math.min(H-1,y0+1);
   return (g[y0*W+x0]*(1-fx)+g[y0*W+x1]*fx)*(1-fy)+(g[y1*W+x0]*(1-fx)+g[y1*W+x1]*fx)*fy;
 }
-function readSheet(gray,W,H,h){
+function readSheet(gray,W,H,h,mode){
+  const sil=mode==='silang';
   const f=new Float32Array(NMAX*5);
   for(let q=0;q<NMAX;q++)for(let k=0;k<5;k++){
     const [bx,by]=bubbleXY(q,k);
     let sum=0,cnt=0;
+    if(sil){
+      for(let dy=-1.3;dy<=1.31;dy+=.2)for(let dx=-1.3;dx<=1.31;dx+=.2){
+        const [u,v]=mapH(h,bx+dx,by+dy);sum+=bilin(gray,W,H,u,v);cnt++;}
+    }else{
     for(let dy=-1.3;dy<=1.31;dy+=.4)for(let dx=-1.3;dx<=1.31;dx+=.4){
       if(dx*dx+dy*dy>1.7)continue;
       const [u,v]=mapH(h,bx+dx,by+dy);sum+=bilin(gray,W,H,u,v);cnt++;}
+    }
     const ring=[];
     for(let a=0;a<16;a++){const t=a/16*Math.PI*2;for(const r of [2.45,2.85]){const [u,v]=mapH(h,bx+Math.cos(t)*r,by+Math.sin(t)*r);ring.push(bilin(gray,W,H,u,v));}}
     const paper=Math.max(40,medianOf(ring));
     f[q*5+k]=Math.min(1,Math.max(0,1-(sum/cnt)/paper));
   }
   const base=medianOf(Array.from(f));
+  if(sil)return readSilang(f,base);
   const thr=base+.17;
   const ans=[],flags=[];
   for(let q=0;q<NMAX;q++){
@@ -970,6 +981,31 @@ function readSheet(gray,W,H,h){
     if(m<base+.27||second>base+.12&&second>.4*m)flags.push(q);
   }
   return {ans,flags,f,base};
+}
+/* Lembar silang: tanda X menutupi kotak lebih sedikit daripada bulatan yang dihitamkan.
+   Kotak yang dihitamkan penuh dianggap dibatalkan (siswa mengganti jawaban). */
+const SIL_THR=.07;
+function readSilang(f,base){
+  const ans=[],flags=[],thr=base+SIL_THR,solidAt=Math.max(.62,base+.5);
+  for(let q=0;q<NMAX;q++){
+    const row=[0,1,2,3,4].map(k=>f[q*5+k]);
+    const solid=row.map(v=>v>=solidAt);
+    const act=row.map((v,k)=>solid[k]?0:v);
+    const m=Math.max(...act);
+    if(m<thr){
+      const ns=solid.filter(Boolean).length;
+      if(ns===1){ans.push(LET[solid.indexOf(true)]);flags.push(q);}   // dihitamkan penuh tanpa silang lain: anggap jawaban, minta dicek
+      else if(ns>1){ans.push('*');flags.push(q);}
+      else{ans.push("");if(m>base+.035)flags.push(q);}
+      continue;
+    }
+    const sel=act.map((v,k)=>v>=Math.max(thr,.5*m)?k:-1).filter(k=>k>=0);
+    if(sel.length>1){ans.push('*');flags.push(q);continue;}
+    ans.push(LET[sel[0]]);
+    const second=Math.max(...act.filter((v,k)=>k!==sel[0]));
+    if(m<base+.15||second>base+.07&&second>.4*m)flags.push(q);
+  }
+  return {ans,flags,f,base,sil:true};
 }
 function rectify(src,W,H,h){
   const S=5,w=GEO.W*S,hh=GEO.H*S,out=new ImageData(w,hh),o=out.data,d=src.data;
@@ -989,7 +1025,7 @@ function detectSheets(gray,W,H){
   const cands=components(bin,W,H,Math.pow(maxDim*.006,2),maxDim);
   return findSheets(cands);
 }
-async function analyze(file,onStep){
+async function analyze(file,onStep,mode){
   const bmp=await loadBitmap(file);
   const bw=bmp.width||bmp.naturalWidth,bh=bmp.height||bmp.naturalHeight;
   const sc=Math.min(1,2400/Math.max(bw,bh));
@@ -1006,7 +1042,7 @@ async function analyze(file,onStep){
     onStep&&onStep('Membaca lembar '+(s+1)+' dari '+sheets.length);await tick();
     const Q=sheets[s].Q;
     const h=solveH([GEO.TL,GEO.TR,GEO.BR,GEO.BL],Q.map(p=>[p.x,p.y]));
-    const r=readSheet(gray,W,H,h);
+    const r=readSheet(gray,W,H,h,mode);
     r.rect=rectify(img,W,H,h);
     out.push(r);
   }
@@ -1020,9 +1056,9 @@ function paintSheet(cv,p,ex){
   for(let q=0;q<ex.n;q++){
     const a=p.ans[q],kq=ex.key[q];
     if(a==='*'){for(let k=0;k<5;k++){}}
-    const mark=(k,col,w,dash)=>{const [x,y]=bubbleXY(q,k);c.beginPath();c.arc(x*S,y*S,2.5*S,0,7);c.lineWidth=w;c.strokeStyle=col;c.setLineDash(dash||[]);c.stroke();};
+    const mark=(k,col,w,dash)=>{const [x,y]=bubbleXY(q,k);c.beginPath();if(ex.sheet==='silang')c.rect((x-2.3)*S,(y-2.3)*S,4.6*S,4.6*S);else c.arc(x*S,y*S,2.5*S,0,7);c.lineWidth=w;c.strokeStyle=col;c.setLineDash(dash||[]);c.stroke();};
     if(a===''){ if(kq)mark(LET.indexOf(kq),'#d98a00',2.2,[5,4]); }
-    else if(a==='*'){ for(let k=0;k<5;k++){ if(p.f&&p.f[q*5+k]>=p.base+.17&&p.f[q*5+k]>=.55*Math.max(...[0,1,2,3,4].map(z=>p.f[q*5+z])))mark(k,'#d98a00',3);} }
+    else if(a==='*'){ for(let k=0;k<5;k++){ if(p.f&&p.f[q*5+k]>=p.base+(ex.sheet==='silang'?SIL_THR:.17)&&p.f[q*5+k]>=.5*Math.max(...[0,1,2,3,4].map(z=>p.f[q*5+z])))mark(k,'#d98a00',3);} }
     else if(kq&&a===kq)mark(LET.indexOf(a),'#17a34a',3);
     else{ mark(LET.indexOf(a),'#dc2626',3); if(kq)mark(LET.indexOf(kq),'#17a34a',2.2,[5,4]); }
   }
@@ -1086,7 +1122,7 @@ function wireCard(card,r,ex,onChange){
 function renderPHead(){
   const ex=exam(),k=keyDone(ex),h=$('#pHead');
   if(!hasExam()){h.innerHTML='<div class="note">Belum ada ujian. Buat dulu di menu <a href="#pengaturan">Pengaturan</a> (jenis ujian dan kunci jawaban), atau coba dengan foto contoh.</div>';return;}
-  h.innerHTML=`<a class="exam-chip" href="#pengaturan"><div class="t"><b>${esc(examName(ex))}</b><span>${ex.n} soal · ${k>=ex.n?'<span class="badge ok">Kunci lengkap</span>':'<span class="badge warn">Kunci '+k+'/'+ex.n+'</span>'}</span></div><em>Ubah</em></a>`
+  h.innerHTML=`<a class="exam-chip" href="#pengaturan"><div class="t"><b>${esc(examName(ex))}</b><span>${ex.n} soal · ${ex.sheet==='silang'?'<span class="badge">Lembar silang</span> · ':''}${k>=ex.n?'<span class="badge ok">Kunci lengkap</span>':'<span class="badge warn">Kunci '+k+'/'+ex.n+'</span>'}</span></div><em>Ubah</em></a>`
    +(k<ex.n?`<div class="note">Kunci jawaban baru terisi ${k} dari ${ex.n} soal, nilai belum akurat. <a href="#pengaturan">Lengkapi kunci</a></div>`:'')
    +(ex.demo?`<div class="note info">Ini ujian contoh dengan kunci contoh. Buat ujian Anda di menu <a href="#pengaturan">Pengaturan</a>.</div>`:'')
    +(sessionSaved?`<div class="note ok">${sessionSaved} lembar sudah tersimpan. <a href="#hasil">Lihat hasil</a></div>`:'');
@@ -1152,7 +1188,7 @@ async function handleFiles(files){
     busy.innerHTML=`<div class="note info"><span class="spin"></span><span id="busyTxt">Memproses foto${lab}</span></div>`;
     await tick();
     try{
-      const res=await analyze(list[fi],t=>{const e=$('#busyTxt');if(e)e.textContent=t+lab;});
+      const res=await analyze(list[fi],t=>{const e=$('#busyTxt');if(e)e.textContent=t+lab;},exam().sheet);
       if(!res.sheets.length){
         busy.innerHTML=`<div class="note err"><b>Penanda sudut tidak terbaca${lab}.</b> Pastikan keempat kotak hitam di sudut tiap lembar terlihat utuh, cahaya cukup terang, dan kertas tidak terlipat. Coba foto lagi dari jarak sedikit lebih jauh.</div>`;
         continue;
@@ -1306,7 +1342,7 @@ function scanKeyFile(f){
   const m=$('#keyMsg');if(m)m.innerHTML='<div class="note info"><span class="spin"></span>Membaca lembar kunci</div>';
   tick().then(async()=>{
     try{
-      const ex=exam(),res=await analyze(f);
+      const ex=exam(),res=await analyze(f,null,ex.sheet);
       if(!res.sheets.length){if($('#keyMsg'))$('#keyMsg').innerHTML='<div class="note err">Penanda sudut tidak terbaca. Foto ulang lembar kunci dengan keempat kotak hitam terlihat.</div>';return;}
       const s=res.sheets[0];for(let i=0;i<NMAX;i++)ex.key[i]=(s.ans[i]==='*'?'':s.ans[i])||'';
       save();renderPengaturan();
@@ -1342,6 +1378,8 @@ function renderPengaturan(){
       <label class="f" id="jenisLainBox" ${jsel==='__lain'?'':'hidden'}>Nama jenis ujian<input type="text" id="exJenisLain" value="${esc(preset?'':ex.jenis)}" placeholder="Misal: Remedial" autocomplete="off"></label>
       <div class="two"><label class="f">Mata pelajaran<input type="text" id="exMapel" value="${esc(ex.mapel)}" placeholder="Misal: Kimia" autocomplete="off"></label>
         <label class="f">Kelas<input type="text" id="exKelas" value="${esc(ex.kelas)}" placeholder="Misal: XI IPA" autocomplete="off"></label></div>
+      <label class="f">Jenis lembar jawab<select id="exSheet"><option value="bulat" ${ex.sheet!=='silang'?'selected':''}>Hitamkan bulatan</option><option value="silang" ${ex.sheet==='silang'?'selected':''}>Silang (X) di kotak</option></select></label>
+      <p class="muted" id="sheetNote" style="font-size:13px;margin:-4px 2px 10px">${ex.sheet==='silang'?'Siswa menyilang satu kotak. Untuk mengganti jawaban, hitamkan penuh kotak lama. Cetak lembar silang di tab Lembar Jawab.':'Siswa menghitamkan satu bulatan. Cetak lembar bulatan di tab Lembar Jawab.'}</p>
       <label class="f">Sekolah / instansi (opsional)<input type="text" id="exSek" value="${esc(ex.sekolah||'')}" placeholder="Misal: SMA Negeri 1 Contoh" autocomplete="off"></label>
       <div class="f">Jumlah soal
         <div class="seg" role="group" aria-label="Jumlah soal"><button type="button" data-n="40" aria-pressed="${ex.n===40}">40 soal</button><button type="button" data-n="50" aria-pressed="${ex.n===50}">50 soal</button></div></div>
@@ -1361,8 +1399,12 @@ function renderPengaturan(){
         <div id="keyMsg"></div>
         <button class="btn small danger" id="keyClear" type="button">Kosongkan kunci</button></div></div>
    <div class="card" data-sec="lembar"><h2>Lembar jawab</h2>
-      <p class="muted" style="margin-bottom:12px">Cetak 50 soal, tiga lembar per kertas. Aplikasi hanya membaca lembar dengan empat kotak hitam di sudut.</p>
-      <div class="grid2"><a class="btn" href="lembar/LEMBAR_JAWAB_A4.pdf" target="_blank" rel="noopener">Unduh A4</a><a class="btn" href="lembar/LEMBAR_JAWAB_F4.pdf" target="_blank" rel="noopener">Unduh F4</a></div></div>
+      <p class="muted" style="margin-bottom:12px">Cetak 50 soal, tiga lembar per kertas. Aplikasi hanya membaca lembar dengan empat kotak hitam di sudut. Pilih jenis lembar yang sama dengan pengaturan ujian.</p>
+      <h3 class="sh">Hitamkan bulatan${ex.sheet!=='silang'?' <span class="badge ok">dipakai ujian ini</span>':''}</h3>
+      <div class="grid2"><a class="btn" href="lembar/LEMBAR_JAWAB_A4.pdf" target="_blank" rel="noopener">Unduh A4</a><a class="btn" href="lembar/LEMBAR_JAWAB_F4.pdf" target="_blank" rel="noopener">Unduh F4</a></div>
+      <h3 class="sh">Silang (X) di kotak${ex.sheet==='silang'?' <span class="badge ok">dipakai ujian ini</span>':''}</h3>
+      <div class="grid2"><a class="btn" href="lembar/LEMBAR_JAWAB_SILANG_A4.pdf" target="_blank" rel="noopener">Unduh A4</a><a class="btn" href="lembar/LEMBAR_JAWAB_SILANG_F4.pdf" target="_blank" rel="noopener">Unduh F4</a></div>
+      <p class="muted" style="margin-top:10px;font-size:13px">Lembar silang lebih sulit dibaca daripada bulatan yang dihitamkan. Tanda yang sangat tipis bisa terlewat, jadi periksa soal yang diberi tanda kuning.</p></div>
    <div class="dock" id="dock"><div class="dock-in"><div class="info" id="dockInfo"></div><button class="btn soft" id="dkSave" type="button" aria-label="Simpan pengaturan"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/></svg>Simpan</button><button class="btn primary" id="goScan" type="button"></button></div></div>`;
   const showSec=()=>{document.querySelectorAll('#v-pengaturan [data-sec]').forEach(el=>{el.hidden=el.dataset.sec!==pTab;});document.querySelectorAll('#pTabs button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.t===pTab)));
     const dk=$('#dock');dk.dataset.tab=pTab;$('#dkSave').hidden=!(pTab==='jenis'&&(!!draft||validEx(ex).length>0));
@@ -1415,6 +1457,7 @@ function renderPengaturan(){
   $('#exMapel').oninput=e=>{ex.mapel=e.target.value;upd();};
   $('#exKelas').oninput=e=>{ex.kelas=e.target.value;upd();};
   $('#exSek').oninput=e=>{ex.sekolah=e.target.value;upd();brandSub();};
+  $('#exSheet').onchange=e=>{ex.sheet=e.target.value==='silang'?'silang':'bulat';upd();const m=$('#sheetNote');if(m)m.textContent=ex.sheet==='silang'?'Siswa menyilang satu kotak. Untuk mengganti jawaban, hitamkan penuh kotak lama. Cetak lembar silang di tab Lembar Jawab.':'Siswa menghitamkan satu bulatan. Cetak lembar bulatan di tab Lembar Jawab.';};
   const setN=n=>{ex.n=n;pending=[];save();$('#exN').value=n;document.querySelectorAll('.seg button[data-n]').forEach(b=>b.setAttribute('aria-pressed',String(+b.dataset.n===n)));redraw();};
   document.querySelectorAll('.seg button[data-n]').forEach(b=>b.onclick=()=>setN(+b.dataset.n));
   $('#exN').onchange=e=>{const n=Math.max(1,Math.min(NMAX,parseInt(e.target.value)||NMAX));e.target.value=n;setN(n);};
@@ -1453,7 +1496,7 @@ function fillRiwayatList(){
     const el=w.firstElementChild;box.appendChild(el);
     el.querySelector('[data-a=hasil]').onclick=()=>openExam(e.id,'#hasil');
     el.querySelector('[data-a=scan]').onclick=()=>openExam(e.id,'#pindai');
-    el.querySelector('[data-a=dup]').onclick=()=>{if(TRIAL&&trialUjian()>=TRIAL.ujian){trialMsg('ujian');return;}const c=newExam({jenis:e.jenis,mapel:e.mapel,kelas:e.kelas,n:e.n,key:e.key.slice()});S.exams.push(c);save();toast('Ujian disalin dengan kunci yang sama, tanpa hasil');renderRiwayat();};
+    el.querySelector('[data-a=dup]').onclick=()=>{if(TRIAL&&trialUjian()>=TRIAL.ujian){trialMsg('ujian');return;}const c=newExam({jenis:e.jenis,mapel:e.mapel,kelas:e.kelas,sekolah:e.sekolah||'',sheet:e.sheet||'bulat',n:e.n,key:e.key.slice()});S.exams.push(c);save();toast('Ujian disalin dengan kunci yang sama, tanpa hasil');renderRiwayat();};
     const del=el.querySelector('[data-a=del]');
     if(del){let armed=false;del.onclick=()=>{if(!armed){armed=true;del.textContent='Ketuk lagi untuk menghapus';setTimeout(()=>{armed=false;del.textContent='Hapus';},3000);return;}
       S.exams=S.exams.filter(x=>x!==e);if(S.cur===e.id){S.cur=S.exams.length?S.exams[0].id:null;pending=[];sessionSaved=0;}save();toast('Ujian dihapus');renderRiwayat();renderTabs();};}

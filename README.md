@@ -71,7 +71,7 @@ Jika tampilan lama masih muncul di HP, tutup aplikasi sepenuhnya lalu buka lagi,
 
 ## Mencetak lembar jawab
 
-File ada di folder `lembar/` (A4 dan F4). Cetak dengan skala **100%** (jangan "fit to page").
+File ada di folder `lembar/` (A4 dan F4), dalam dua jenis: **bulatan** (dihitamkan) dan **silang** (`LEMBAR_JAWAB_SILANG_*.pdf`, tanda X pada kotak). Pilih jenisnya di Pengaturan, tab Jenis Ujian. Pada lembar silang, untuk mengganti jawaban hitamkan penuh kotak lama. Silang yang sangat tipis bisa terlewat, jadi periksa soal yang diberi tanda kuning. Cetak dengan skala **100%** (jangan "fit to page").
 Sisakan tepi putih saat menggunting tiga lembar; kotak hitam di sudut tidak boleh terpotong.
 Aplikasi hanya membaca lembar yang memiliki empat kotak hitam di sudut.
 
