@@ -1,4 +1,4 @@
-# Koreksi Lembar Jawab
+# Correcta
 
 Aplikasi koreksi lembar jawab pilihan ganda otomatis dari foto (HP).
 Dibuat oleh **Aras Hidayat, S.Pd**.
@@ -21,10 +21,10 @@ lembar/                  lembar jawab PDF (A4 dan F4)
 
 1. **Buat akun GitHub** di github.com (gratis), lalu masuk.
 2. Klik tanda **+** di kanan atas, pilih **New repository**.
-   - Repository name: `koreksi-ljk` (huruf kecil, tanpa spasi).
+   - Repository name: `correcta` (huruf kecil, tanpa spasi).
    - Pilih **Public**.
    - Centang **Add a README file**. Klik **Create repository**.
-3. **Ekstrak** file zip `koreksi-ljk-github.zip` di komputer. Hasilnya satu folder berisi file dan folder di atas.
+3. **Ekstrak** file zip `correcta-github.zip` di komputer. Hasilnya satu folder berisi file dan folder di atas.
 4. Di halaman repositori, klik **Add file → Upload files**.
 5. **Seret semua isi folder hasil ekstrak** ke kotak unggah (`index.html`, `sw.js`, `manifest.webmanifest`, folder `icons` dan folder `lembar`, sekaligus). Susunan folder harus tetap sama.
    - Jika diminta menimpa README, pilih saja versi yang diunggah.
@@ -33,7 +33,7 @@ lembar/                  lembar jawab PDF (A4 dan F4)
    - Pada **Build and deployment**, di **Source** pilih **Deploy from a branch**.
    - Pada **Branch** pilih **main** dan folder **/ (root)**, lalu klik **Save**.
 8. Tunggu 1 sampai 3 menit. Muat ulang halaman Pages sampai muncul tulisan
-   **Your site is live at** `https://NAMA-AKUN.github.io/koreksi-ljk/`
+   **Your site is live at** `https://NAMA-AKUN.github.io/correcta/`
 9. Buka alamat itu di HP.
 
 ## Memasang di layar utama HP

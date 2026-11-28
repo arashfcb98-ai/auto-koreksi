@@ -1,8 +1,8 @@
 {
-  "id": "/koreksi-lembar-jawab",
-  "name": "Koreksi Lembar Jawab",
-  "short_name": "Lembar Jawab",
-  "description": "Koreksi lembar jawab pilihan ganda otomatis dari foto, langsung di HP.",
+  "id": "/correcta",
+  "name": "Correcta",
+  "short_name": "Correcta",
+  "description": "Correcta: koreksi lembar jawab pilihan ganda otomatis dari foto, langsung di HP.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
